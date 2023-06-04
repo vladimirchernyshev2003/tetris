@@ -190,10 +190,51 @@ function update(time = 0) {
     requestAnimationFrame(update);
 }
 
+function getDropPosition(arena, player) {
+    let pos = Object.assign({}, player.pos); // Copy the player's current position
+    while (!collide(arena, { pos: pos, matrix: player.matrix })) { // Drop the piece until it collides
+        pos.y++;
+    }
+    pos.y--; // Step back up one space after the collision
+    return pos;
+}
+
+function colorToRgba(color, opacity) {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = tempCanvas.height = 1;
+    const tempContext = tempCanvas.getContext('2d');
+    tempContext.fillStyle = color;
+    tempContext.fillRect(0, 0, 1, 1);
+    const data = tempContext.getImageData(0, 0, 1, 1).data;
+    return `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${opacity})`; // Return the rgba equivalent
+}
+
+
+function drawShadow(matrix, offset) {
+    matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                const color = colors[value];
+                const rgbaColor = colorToRgba(color, 0.25); // Convert the color to rgba with 50% opacity
+                context.fillStyle = rgbaColor;
+                context.fillRect(x + offset.x,
+                                 y + offset.y,
+                                 1, 1);
+            }
+        });
+    });
+}
+
+
+
 function draw() {
     context.fillStyle = '#000';
     context.fillRect(0, 0, canvas.width, canvas.height);
     drawMatrix(arena, {x: 0, y: 0});
+    
+    const dropPos = getDropPosition(arena, player);
+    drawShadow(player.matrix, dropPos);
+    
     drawMatrix(player.matrix, player.pos);
 
     context.fillStyle = 'white'; // score color
@@ -201,8 +242,9 @@ function draw() {
     context.fillText(`Score: ${score}`, 0.1, 0.9); // display score
 }
 
+
 function arenaSweep() {
-    outer: for (let y = arena.length -1; y > 0; --y) {
+    outer: for (let y = arena.length - 1; y >= 0; --y) {
         for (let x = 0; x < arena[y].length; ++x) {
             if (arena[y][x] === 0) {
                 continue outer;
@@ -215,6 +257,7 @@ function arenaSweep() {
         score += 10; // update score when a line is cleared
     }
 }
+
 
 
 let isPaused = false;
